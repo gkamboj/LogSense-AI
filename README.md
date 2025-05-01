@@ -38,10 +38,9 @@ After cloning the repository, follow these steps to set up the project:
 4. **Install dependencies**:
    - Run the following commands in your terminal:
      ```bash
-     pip install "generative-ai-hub-sdk[all]==1.2.2" --extra-index-url https://int.repositories.cloud.sap/artifactory/api/pypi/proxy-deploy-releases-hyperspace-pypi/simple/
      pip install -r requirements.txt
      ```
-   - If you prefer to connect directly to the LLM via OpenAI instead of using the SAP proxy, you can skip the installation of `generative-ai-hub-sdk` and install required LangChain libraries instead.
+   - If you prefer to connect directly to the LLM via OpenAI instead of using the SAP Generative AI Hub, you can skip the installation of `generative-ai-hub-sdk` and install required LangChain libraries instead.
 
 5. **Run the application**:
    ```bash
@@ -52,15 +51,20 @@ After cloning the repository, follow these steps to set up the project:
 Open your web browser and navigate to [http://localhost:8500/](http://localhost:8500/) (or the appropriate port if different).
 
 ## Usage
-Once the application is running, you can interact with LogSense AI by entering your queries in the provided interface. The chatbot will retrieve relevant information from the document database and generate responses based on the context.
+Once the application is running, you can interact with LogSense AI through these options:
+- **CHAT**: Enter queries in the chat input to get AI-generated responses based on relevant documents from the knowledge base.
+- **RCA UPLOADS**: 
+  - Submit RCA documents in PDF format using the [Word template](/resources/RCA_upload_template.docx).
+  - With `sharepoint.upload` enabled, documents will automatically sync to your specified Sharepoint folder (`sharepoint.uploadFolder`). Note that Sharepoint integration required valid credentials in [credentials.json](/config/credentials.json) file.
 
+ 
 ## Screenshots
 Here are some screenshots showcasing working deployments of the application.
 - Startup:
   <img width="1597" alt="1-startup" src="https://github.com/user-attachments/assets/6c63b5cd-3162-4239-a707-2333ea675d43">
 
-- Chat inteerface selection (See [Future Improvements](#future-improvements) for details of _LOG FILE_ interaction type):
-  <img width="1728" alt="2-interaction-types" src="https://github.com/user-attachments/assets/da906a2d-0e8c-4790-9167-1a1bc45af523">
+- Interface selection (See [Future Improvements](#future-improvements) for details of _LOG FILE_ interaction type):
+  <img width="1727" alt="image" src="https://github.com/user-attachments/assets/13486de9-3355-4cc8-af40-2d987859a2ed" />
 
 - [_CHAT_ interaction type] Query for which response is available from stored documents. Note that response also shares link to source documents:
   <img width="1727" alt="3-response from context" src="https://github.com/user-attachments/assets/5733782c-eda3-4941-94aa-57a45dbc7a8c">
@@ -71,6 +75,9 @@ Here are some screenshots showcasing working deployments of the application.
 
      - If flag `app.allowWithoutContextResults` is true:
        <img width="1715" alt="4 2-out-of-context" src="https://github.com/user-attachments/assets/2f9a4b2f-41ef-427c-8c85-92b65c344999">
+
+- [_RCA UPLOADS_ interaction type] This interface allows the uploading of custom RCA in the PDF format:
+<img width="1724" alt="Screenshot 2025-05-01 at 4 30 41 PM" src="https://github.com/user-attachments/assets/28b17a1c-1fae-4571-bc1f-bf25ef1b20d9" />
 
 
 ## Customizations
@@ -85,8 +92,8 @@ Here are a few options for deploying the application:
 - Cloud Foundry: Relevant files for deployment through SAP BTP are included in the repository.
 
 ## Future Improvements
-1. **SharePoint integration**: Users will be able to share SharePoint links to their own documents, which will be stored in the database and used by the LLM to answer queries.
-2. **Log file upload interface**: Planned alternate chat interface to allow users to upload log file, which will be analysed to fetch error logs and display as dropdown to the user. Users will be able to select specific logs for analysis, and the application will utilize the LLM to display the detailed results for the selected logs. This feature can be accessed using _LOG FILE_ interaction type. It is in development, and currently mock logs are shown for every uploaded file. Screenshots for this feature:
+1. ~~**SharePoint integration**: Users will be able to share SharePoint links to their own documents, which will be stored in the database and used by the LLM to answer queries.~~ -> Implemented
+2. **Log file upload interface**: Planned alternate chat interface to allow users to upload log file, which will be analysed to fetch error logs and display as dropdown to the user. Users will be able to select specific logs for analysis, and the application will utilize the LLM to display the detailed results for the selected logs. This feature can be accessed using _LOG FILE_ interaction type. Currently mock logs are shown for every uploaded file. Screenshots for this feature:
   - Landing screen:
     <img width="1723" alt="5-log-interaction" src="https://github.com/user-attachments/assets/4bc469e8-26d0-4b6c-9ec2-4542f16ca8af">
 
@@ -98,7 +105,7 @@ Here are a few options for deploying the application:
 
 
 ## Contributing
-We welcome contributions to enhance LogSense AI! Please fork the repository and submit a pull request for any new features or bug fixes.
+I welcome contributions to enhance LogSense AI! Please fork the repository and submit a pull request for any new features or bug fixes.
 
 ## License
 This project is licensed under the MIT License. See the LICENSE file for more details.

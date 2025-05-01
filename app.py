@@ -1,8 +1,8 @@
 import json
+import traceback
 from collections import defaultdict
 
 import streamlit as st
-from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 
 from config.configuration import configs
@@ -26,6 +26,8 @@ the answer from the given context, just respond with the message: 'Sorry, I am u
     'without_context': f'''Answer the shared query with respect to SAP Commerce Cloud: '''
 }
 
+UPLOAD_FOLDER = '/Documents/ArtificialIntelligence/LogSenseAI/dataset/UPLOADS'  # Ensure this exists
+ALLOWED_EXTENSIONS = {'pdf', 'log', 'txt'}
 
 def get_static_prompt(prompt_type):
     return STATIC_PROMPTS[prompt_type]
@@ -63,8 +65,8 @@ def initialise_state_variables(query_type):
         st.session_state.last_file_id = None
 
 
-def handle_user_input(prompt, _llm, _qa, user_avatar, assistant_avatar, query_type:str):
-    context = cs.get_relevant_context(prompt)
+def handle_user_input(prompt, _llm, _qa, user_avatar, assistant_avatar, query_type: str):
+    context = ops.get_relevant_context(prompt)
     combined_prompt = get_static_prompt(f"with_context_{query_type.replace(' ', '').lower()}") + prompt
     print(f'Combined prompt: {combined_prompt}')
     st.session_state.messages.append({'role': 'user', 'content': prompt})
@@ -76,8 +78,11 @@ def handle_user_input(prompt, _llm, _qa, user_avatar, assistant_avatar, query_ty
         # response = ops.get_prompt_result_from_context(combined_prompt, _chain=_qa)
         documents, prefix = [], None
         try:
-            response = _qa.run({"context": context, "question": combined_prompt})
-            print(f'Result: {json.dumps(response)}')
+            response = _qa.invoke({
+                "context": context,
+                "question": combined_prompt
+            }).content
+            print(f'Result: {response}')
             if not is_success_response(response):
                 prefix = PREFIX_NO_CONTEXT
                 if configs['app.allowWithoutContextResults']:
@@ -85,17 +90,25 @@ def handle_user_input(prompt, _llm, _qa, user_avatar, assistant_avatar, query_ty
                     response = ops.get_prompt_result(_llm, prompt)
             else:
                 documents = set((doc['document']['id'], doc['document']['url']) for doc in context)
-        except Exception as e:
+        except Exception:
             prompt = get_static_prompt('without_context') + prompt
             response = ops.get_prompt_result(_llm, prompt)
-            print(str(e))
+            print("Error through LLM chain: ")
+            traceback.print_exc()
         sts.write_response(st, response, documents=documents, prefix=prefix)
     print(f'Response: {json.dumps(response)}')
-    st.session_state.messages.append({'role': 'assistant', 'content': response, 'documents': documents, 'prefix': prefix})
+    st.session_state.messages.append(
+        {'role': 'assistant', 'content': response, 'documents': documents, 'prefix': prefix})
 
 
 def run_streamlit_app():
-    sts.set_static_content(st)
+    sts.set_page_config(st)
+
+    query_types = get_allowed_query_types()
+    query_type = sts.get_selection_from_sidebar(st, 'Select interaction type', query_types.keys())
+    initialise_state_variables(query_type)
+
+    sts.set_static_content(st, query_type)
     assistant_avatar = sts.get_assistant_avatar()
     user_avatar = sts.get_user_avatar()
 
@@ -106,26 +119,32 @@ def run_streamlit_app():
 
     # vectorstore = ops.get_processed_data_from_loader(MergedDataLoader(loaders=ops.get_loaders()))
     # qa = ConversationalRetrievalChain.from_llm(llm, vectorstore.as_retriever())
-    qa = LLMChain(llm=llm, prompt=PromptTemplate(
+    prompt = PromptTemplate(
         input_variables=["context", "question"],
         template="{context}\n\nQuestion: {question}\nAnswer:"
-    ))
-
-    query_types = get_allowed_query_types()
-    query_type = sts.get_selection_from_sidebar(st, 'Select interaction type', query_types.keys())
-
-    initialise_state_variables(query_type)
+    )
+    qa = prompt | llm
 
     if query_types[query_type]['fileUpload']:
         query_type_config = query_types[query_type]
-        file = st.file_uploader(f"Upload your {query_type_config['name']}", type=query_type_config['extensions'])
+        allowed_extensions = query_type_config['extensions']
+        # Separate handling for LOG FILE and EMBEDDING FILE
+        file = st.file_uploader(query_type_config['message'], type=allowed_extensions)
+        if query_type == ac.QUERY_TYPE_LOG_FILE:
+            if file:
+                if file.file_id != st.session_state.get('last_file_id', None):
+                    st.session_state.messages = []
+                    st.session_state.logs = ms.find_logs_for_file(file.file_id)
+                    st.session_state.last_file_id = file.file_id
+                    st.rerun()
 
-        if file:
-            if file.file_id != st.session_state.get('last_file_id', None):
-                st.session_state.messages = []
-                st.session_state.logs = ms.find_logs_for_file(file.file_id)
-                st.session_state.last_file_id = file.file_id
-                st.rerun()
+        elif query_type == ac.QUERY_TYPE_RCA_UPLOAD:
+            if file:
+                result = ops.handle_file_upload(file)
+                if result['success']:
+                    st.success(f"Embeddings stored successfully for file: {file.name}")
+                else:
+                    st.error(f"Failed to process the embeddings due to error: {result['message']}")
 
     for message in st.session_state.messages:
         role = message['role']

@@ -9,7 +9,7 @@ KBA_DIRECTORY = BASE_PATH + '/KBAs'
 KBA_CSV = BASE_PATH + '/pending.csv'
 
 
-def insert_kbas_data(hana_conn):
+def insert_kbas_data_old(hana_conn):
     data = pd.read_csv(KBA_CSV, sep=',')
     insert_query = f'''
         INSERT INTO {SCHEMA}.KBAs (SAP_Component, Document_Id, Version, Title, Category, Priority, Released_On, Link)
@@ -33,6 +33,21 @@ def insert_kbas_data(hana_conn):
     hana_conn.commit()
     print(f'Committed all remaining rows, total: {len(data)}.')
     hana_conn.close()
+
+
+def insert_kbas_data():
+    data = pd.read_csv(KBA_CSV, sep=',')
+    for index, row in data.iterrows():
+        hs.insert_kba(
+            row['Number'],
+            row['Link'],
+            pd.to_datetime(row['Released On'], format='%d.%m.%Y').date(),
+            row['Title'],
+            row['Version'],
+            row['Category'],
+            row['SAP Component'],
+            row['Priority']
+        )
 
 
 def test_db_connection(hana_conn):

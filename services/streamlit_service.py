@@ -7,7 +7,6 @@ from PIL import Image
 from config.configuration import configs
 from constants import app_constants as ac
 from services import file_service as fs
-from services import operations_service as ops
 
 
 def get_image_bytes(image_path):
@@ -36,19 +35,24 @@ def get_avatar_for_role(role, tenant=ac.TENANT_LOGSENSE):
     return get_user_avatar(tenant) if role == 'user' else get_assistant_avatar(tenant)
 
 
-def set_static_content(st, tenant=ac.TENANT_LOGSENSE):
+def set_static_content(st, query_type, tenant=ac.TENANT_LOGSENSE):
     # st.image('resources/st_banner.png', use_column_width=True)
     # st.title('LogSense AI Assistant')
-    page_title = configs.get(f'{tenant}.pageTitle', tenant)
-    st.set_page_config(page_title=page_title,
-                       page_icon=get_assistant_avatar(tenant))
     left_co, cent_co, last_co = st.columns(3)
-    html_string = '''
-        <h3>Welcome to LogSense AI. How can I assist you?</h3>
-        '''
+    html_string = ''
+    if ac.QUERY_TYPE_CHAT == query_type:
+        html_string = '''
+            <h3>Welcome to LogSense AI. How can I assist you?</h3>
+            '''
     with cent_co:
         st.image(get_assistant_icon_path(tenant), width=100)
     st.markdown(html_string, unsafe_allow_html=True)
+
+
+def set_page_config(st, tenant=ac.TENANT_LOGSENSE):
+    page_title = configs.get(f'{tenant}.pageTitle', tenant)
+    st.set_page_config(page_title=page_title,
+                       page_icon=get_assistant_avatar(tenant))
 
 
 def get_assistant_icon_path(tenant):
@@ -60,19 +64,10 @@ def get_selection_from_sidebar(st: streamlit, message, values):
 
 
 @streamlit.cache_data(show_spinner=configs['streamlit.spinner.messages.write_response'])
-def write_response(st, response, file_type=None, documents=None, prefix=None):
-    if file_type == ac.FILE_TYPE_EXCEL:
-        try:
-            response = ops.parse_response(response)
-            for part in response:
-                st.markdown(part)
-        except Exception as e:
-            print('Exception in write_response: ' + e)
-            st.markdown(response)
-    else:
-        if prefix:
-            st.markdown(prefix)
-        st.markdown(response)
-        if documents:
-            links = ', '.join([f"[{doc[0]}]({doc[1]})" for doc in documents])
-            st.markdown(f'Check out these KBAs for more information: {links}')
+def write_response(st, response, documents=None, prefix=None):
+    if prefix:
+        st.markdown(prefix)
+    st.markdown(response)
+    if documents:
+        links = ', '.join([f"[{doc[0]}]({doc[1]})" for doc in documents])
+        st.markdown(f'Check out these for more information: {links}')
